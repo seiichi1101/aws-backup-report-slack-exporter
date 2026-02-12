@@ -1,0 +1,15 @@
+{
+  "name": "aws-backup-report-slack-exporter",
+  "version": "1.0.0",
+  "description": "Automated monthly AWS Backup job reporting to Slack via Lambda function. This solution generates comprehensive backup statistics and sends them to your Slack channel on a scheduled basis.",
+  "license": "ISC",
+  "author": "seiichi1101",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-backup": "^3.987.0"
+  }
+}

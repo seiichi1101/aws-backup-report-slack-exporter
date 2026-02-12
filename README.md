@@ -57,7 +57,7 @@ Slack API (files.uploadV2) → Upload CSV file
 1. Click the "Deploy to AWS" button above
 2. Fill in the parameters:
    - **SlackBotToken**: Your Slack Bot User OAuth Token (`xoxb-...`)
-   - **SlackChannelId**: Your Slack Channel ID (e.g., `C05R4FH9UCE`)
+   - **SlackChannelId**: Your Slack Channel ID (e.g., `CXXXXXXXXXX`)
    - **ReportPeriodDays**: Number of days to look back (default: 30)
    - **ScheduleExpression**: EventBridge cron expression (default: `cron(0 0 1 * ? *)`)
 3. Check "I acknowledge that AWS CloudFormation might create IAM resources"
@@ -72,10 +72,10 @@ Slack API (files.uploadV2) → Upload CSV file
 make build
 
 # 2. Deploy to AWS
-make deploy SLACK_BOT_TOKEN=xoxb-your-token SLACK_CHANNEL_ID=C05R4FH9UCE
+make deploy SLACK_BOT_TOKEN=xoxb-your-token SLACK_CHANNEL_ID=CXXXXXXXXXX
 
 # Optional: Test locally before deploying
-make test-local SLACK_BOT_TOKEN=xoxb-your-token SLACK_CHANNEL_ID=C05R4FH9UCE
+make test-local SLACK_BOT_TOKEN=xoxb-your-token SLACK_CHANNEL_ID=CXXXXXXXXXX
 ```
 
 ## Configuration
@@ -94,94 +94,6 @@ make test-local SLACK_BOT_TOKEN=xoxb-your-token SLACK_CHANNEL_ID=C05R4FH9UCE
 - **Monthly (1st at 00:00 UTC)**: `cron(0 0 1 * ? *)`
 - **Weekly (Monday at 09:00 UTC)**: `cron(0 9 ? * MON *)`
 - **Daily (00:00 UTC)**: `cron(0 0 * * ? *)`
-
-## Management
-
-### View Logs
-
-```bash
-make logs
-```
-
-### Invoke Function Manually
-
-```bash
-make invoke-remote
-```
-
-### Delete Stack
-
-```bash
-make destroy
-```
-
-## CSV Report Format
-
-The uploaded CSV file contains the following columns:
-
-- BackupJobId
-- ResourceType (EC2, RDS, DynamoDB, etc.)
-- ResourceArn
-- State (COMPLETED, FAILED, RUNNING, etc.)
-- CreationDate
-- CompletionDate
-- BackupSizeInBytes
-- BackupVaultName
-- RecoveryPointArn
-- IamRoleArn
-- StatusMessage
-
-## Slack Message Format
-
-The file upload includes a summary message:
-
-```
-📊 AWS Backup Report - 2026-02-10
-Total: 150 jobs (✅ 145 completed, ❌ 5 failed)
-```
-
-## Troubleshooting
-
-### No Backup Jobs Found
-
-- Verify AWS Backup is configured and has run jobs in the specified period
-- Check the `ReportPeriodDays` parameter value
-- Ensure the Lambda execution role has `backup:ListBackupJobs` permission
-
-### Slack Upload Fails
-
-- Verify the Slack bot token is valid and has required scopes
-- Ensure the bot is invited to the target channel
-- Check Lambda function logs: `make logs`
-- Verify Channel ID is correct (starts with C, G, or D)
-
-### Permission Denied
-
-Ensure your AWS credentials have permission to:
-
-- Create CloudFormation stacks
-- Create IAM roles and policies
-- Create Lambda functions
-- Create EventBridge rules
-- Create SSM parameters
-
-## Cost Considerations
-
-- **Lambda**: Free tier includes 1M requests/month. Monthly execution ≈ $0.00
-- **EventBridge**: Free tier includes 1M events/month. Monthly execution ≈ $0.00
-- **Parameter Store**: Standard parameters are free
-- **Total estimated cost**: ~$0.00/month for typical usage
-
-## References
-
-- [AWS Backup Documentation](https://docs.aws.amazon.com/aws-backup/)
-- [Slack Bot Tokens](https://api.slack.com/authentication/token-types#bot)
-- [Slack files.uploadV2 API](https://api.slack.com/messaging/files)
-- [EventBridge Schedule Expressions](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-create-rule-schedule.html)
-
-## License
-
-ISC
 
 ## Contributing
 

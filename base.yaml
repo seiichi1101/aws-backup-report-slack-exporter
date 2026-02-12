@@ -1,0 +1,113 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AWS Backup Report to Slack Exporter - Monthly automated backup job reporting'
+
+Parameters:
+  SlackBotToken:
+    Type: String
+    NoEcho: true
+    Description: 'Slack Bot User OAuth Token (starts with xoxb-)'
+    AllowedPattern: '^xoxb-.*'
+    ConstraintDescription: 'Must be a valid Slack Bot Token starting with xoxb-'
+
+  SlackChannelId:
+    Type: String
+    Description: 'Slack Channel ID (e.g., CXXXXXXXXXX)'
+    AllowedPattern: '^[CDG][A-Z0-9]{8,10}$'
+    ConstraintDescription: 'Must be a valid Slack Channel ID (starts with C, D, or G)'
+
+  ReportPeriodDays:
+    Type: Number
+    Default: 31
+    Description: 'Number of days to look back for backup jobs'
+    MinValue: 1
+    MaxValue: 90
+
+  ScheduleExpression:
+    Type: String
+    Default: 'cron(0 0 1 * ? *)'
+    Description: 'EventBridge schedule expression (default: 1st of each month at 00:00 UTC)'
+    AllowedPattern: '^(cron|rate)\(.*\)$'
+    ConstraintDescription: 'Must be a valid EventBridge schedule expression'
+
+Resources:
+  # Lambda Execution Role
+  BackupReportLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: BackupReadAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - backup:ListBackupJobs
+                  - backup:DescribeBackupJob
+                Resource: '*'
+
+  # Lambda Function
+  BackupReportFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-function'
+      Runtime: nodejs24.x
+      Handler: index.handler
+      Role: !GetAtt BackupReportLambdaRole.Arn
+      Code:
+        ZipFile: |
+          #LambdaCode
+      Timeout: 300
+      MemorySize: 256
+      Environment:
+        Variables:
+          SLACK_TOKEN: !Ref SlackBotToken
+          SLACK_CHANNEL: !Ref SlackChannelId
+          REPORT_PERIOD_DAYS: !Ref ReportPeriodDays
+      Description: 'Generate monthly AWS Backup report and send to Slack'
+
+  # EventBridge Rule - Trigger on schedule
+  ScheduleRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub '${AWS::StackName}-schedule'
+      Description: 'Trigger AWS Backup report on schedule'
+      ScheduleExpression: !Ref ScheduleExpression
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt BackupReportFunction.Arn
+          Id: BackupReportTarget
+
+  # Permission for EventBridge to invoke Lambda
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref BackupReportFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt ScheduleRule.Arn
+
+Outputs:
+  LambdaFunctionArn:
+    Description: 'ARN of the Backup Report Lambda Function'
+    Value: !GetAtt BackupReportFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-LambdaArn'
+
+  LambdaFunctionName:
+    Description: 'Name of the Lambda Function'
+    Value: !Ref BackupReportFunction
+    Export:
+      Name: !Sub '${AWS::StackName}-LambdaName'
+
+  ScheduleRuleName:
+    Description: 'Name of the EventBridge Schedule Rule'
+    Value: !Ref ScheduleRule
